@@ -22,6 +22,29 @@ Route::get('/', function () {
     return view('kuekampus', compact('products'));
 });
 
+// Katalog semua produk
+Route::get('/produk', function () {
+    $products = \App\Models\Product::with('category')->get();
+
+    return view('produk.index', compact('products'));
+})->name('produk.index');
+
+// Katalog produk berdasarkan kategori
+Route::get('/produk/kategori/{category}', function (\App\Models\Category $category) {
+    $products = \App\Models\Product::with('category')
+        ->where('category_id', $category->id)
+        ->get();
+
+    return view('produk.index', compact('products', 'category'));
+})->name('produk.kategori');
+
+// Katalog Kategori untuk Pengunjung
+Route::get('/kategori', function () {
+    $categories = \App\Models\Category::all();
+
+    return view('kategori.index', compact('categories'));
+})->name('kategori.index');
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

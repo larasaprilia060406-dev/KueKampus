@@ -315,8 +315,8 @@
 
         <nav>
             <a href="/">Beranda</a>
-            <a href="{{ url('/kategori') }}">Kategori</a>
-            <a href="/produk">Produk</a>
+            <a href="{{ route('categories.index') }}">Kategori</a>
+            <a href="{{ route('products.index') }}">Produk</a>
             <a href="#tentang">Tentang Kami</a>
             <a href="/products">Manajemen Produk</a>
         </nav>
