@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CartController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,12 +50,6 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Produk
-Route::resource('products', ProductController::class);
-
-// Kategori
-Route::resource('categories', CategoryController::class);
-
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -62,9 +57,38 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
+
+    // Dashboard Admin
     Route::get('/admin/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
+
+    // Manajemen Produk
+    Route::resource('products', ProductController::class);
+
+    // Manajemen Kategori
+    Route::resource('categories', CategoryController::class);
+
 });
 
+// Shopping Cart
+Route::middleware('auth')->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])
+        ->name('cart.index');
+
+    Route::post('/cart/add/{id}', [CartController::class, 'add'])
+        ->name('cart.add');
+
+    Route::patch('/cart/update/{id}', [CartController::class, 'update'])
+        ->name('cart.update');
+
+    Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])
+        ->name('cart.remove');
+
+    // Checkout
+    Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout.index');
+    
+    // Simpan pesanan
+    Route::post('/checkout', [CartController::class, 'storeOrder'])->name('checkout.store');
+});
 require __DIR__.'/auth.php';

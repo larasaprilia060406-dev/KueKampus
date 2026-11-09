@@ -104,16 +104,57 @@
                         {{ $product->description ?? 'Belum ada deskripsi produk.' }}
                     </p>
 
-                    <!-- Harga dan Stok -->
-                    <div class="mt-auto flex items-center justify-between border-t border-[#eee4d8] pt-4">
-                        <p class="text-lg font-bold text-[#80523a]">
-                            Rp{{ number_format($product->price, 0, ',', '.') }}
-                        </p>
 
-                        <span class="text-xs text-[#8b7464]">
-                            Stok: {{ $product->stock }}
-                        </span>
+                    <!-- Harga dan Stok -->
+                    <div class="mt-auto border-t border-[#eee4d8] pt-4">
+
+                        <div class="flex items-center justify-between">
+                            <p class="text-lg font-bold text-[#80523a]">
+                                Rp{{ number_format($product->price, 0, ',', '.') }}
+                            </p>
+
+                            <span class="text-xs text-[#8b7464]">
+                                Stok: {{ $product->stock }}
+                            </span>
+                        </div>
+
+                        <!-- Tombol Tambah ke Keranjang -->
+                        <div class="mt-4">
+
+                            @if ($product->stock > 0)
+
+                            @auth
+                            <form action="{{ route('cart.add', $product->id) }}" method="POST">
+                                @csrf
+
+                                <button type="submit"
+                                    class="w-full rounded-lg bg-[#75452e] px-4 py-2.5
+                               text-sm font-semibold text-white
+                               transition hover:bg-[#49352b]">
+                                    Tambah ke Keranjang
+                                </button>
+                            </form>
+                            @else
+                            <a href="{{ route('login') }}"
+                                class="block w-full rounded-lg bg-[#75452e] px-4 py-2.5
+                           text-center text-sm font-semibold text-white
+                           transition hover:bg-[#49352b]">
+                                Login untuk Membeli
+                            </a>
+                            @endauth
+
+                            @else
+                            <button type="button" disabled
+                                class="w-full cursor-not-allowed rounded-lg bg-gray-300
+                       px-4 py-2.5 text-sm font-semibold text-gray-600">
+                                Stok Habis
+                            </button>
+                            @endif
+
+                        </div>
+
                     </div>
+
 
                 </div>
             </div>

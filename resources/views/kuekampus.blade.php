@@ -315,10 +315,19 @@
 
         <nav>
             <a href="/">Beranda</a>
-            <a href="{{ route('categories.index') }}">Kategori</a>
-            <a href="{{ route('products.index') }}">Produk</a>
+            <a href="{{ route('kategori.index') }}">Kategori</a>
+            <a href="{{ route('produk.index') }}">Produk</a>
             <a href="#tentang">Tentang Kami</a>
-            <a href="/products">Manajemen Produk</a>
+
+            @auth
+            @if (auth()->user()->role === 'admin')
+            <a href="{{ route('admin.dashboard') }}">Dashboard Admin</a>
+            @else
+            <a href="{{ route('cart.index') }}">Keranjang</a>
+            @endif
+            @else
+            <a href="{{ route('login') }}">Login</a>
+            @endauth
         </nav>
     </header>
 
