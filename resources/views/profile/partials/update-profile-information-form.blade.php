@@ -1,11 +1,11 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Profile Information') }}
+        <h2 class="text-lg font-semibold" style="color: #75452e;">
+            Informasi Profil
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __("Update your account's profile information and email address.") }}
+        <p class="mt-1 text-sm" style="color: #8b776b;">
+            Perbarui nama dan alamat email yang digunakan pada akun Anda.
         </p>
     </header>
 
@@ -13,34 +13,63 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5">
         @csrf
         @method('patch')
 
         <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
+            <label for="name" class="block text-sm font-medium mb-2" style="color: #49352b;">
+                Nama Lengkap
+            </label>
+
+            <input
+                id="name"
+                name="name"
+                type="text"
+                value="{{ old('name', $user->name) }}"
+                required
+                autofocus
+                autocomplete="name"
+                class="w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                style="border-color: #e5d5c8; color: #49352b;"
+            >
+
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            <label for="email" class="block text-sm font-medium mb-2" style="color: #49352b;">
+                Alamat Email
+            </label>
+
+            <input
+                id="email"
+                name="email"
+                type="email"
+                value="{{ old('email', $user->email) }}"
+                required
+                autocomplete="username"
+                class="w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                style="border-color: #e5d5c8; color: #49352b;"
+            >
+
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div>
-                    <p class="text-sm mt-2 text-gray-800">
-                        {{ __('Your email address is unverified.') }}
+                <div class="mt-3">
+                    <p class="text-sm" style="color: #8b776b;">
+                        Alamat email Anda belum diverifikasi.
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            {{ __('Click here to re-send the verification email.') }}
+                        <button form="send-verification"
+                            class="underline font-medium"
+                            style="color: #75452e;">
+                            Kirim ulang email verifikasi
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600">
-                            {{ __('A new verification link has been sent to your email address.') }}
+                        <p class="mt-2 text-sm font-medium text-green-700">
+                            Link verifikasi baru telah dikirim ke email Anda.
                         </p>
                     @endif
                 </div>
@@ -48,7 +77,11 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <button type="submit"
+                class="px-6 py-3 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                style="background-color: #75452e;">
+                Simpan Perubahan
+            </button>
 
             @if (session('status') === 'profile-updated')
                 <p
@@ -56,8 +89,10 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+                    class="text-sm text-green-700"
+                >
+                    Perubahan berhasil disimpan.
+                </p>
             @endif
         </div>
     </form>

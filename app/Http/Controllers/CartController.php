@@ -120,8 +120,7 @@ class CartController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($cart, $request) {
-
+            $order = DB::transaction(function () use ($cart, $request) {
                 $total = 0;
                 $products = [];
 
@@ -165,12 +164,13 @@ class CartController extends Controller
 
                     $item['product']->decrement('stock', $item['quantity']);
                 }
+                return $order;
             });
 
             session()->forget('cart');
 
-            return redirect()->route('produk.index')
-                ->with('success', 'Pesanan berhasil dibuat. Silakan lanjutkan proses pembayaran.');
+            return redirect()->route('orders.payment', $order)
+                ->with('success', 'Pesanan berhasil dibuat. Silakan lanjutkan pembayaran.');
         } catch (\Exception $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }

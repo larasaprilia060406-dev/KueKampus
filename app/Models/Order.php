@@ -14,6 +14,8 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'order_number',
+        'midtrans_transaction_id',
+        'midtrans_snap_token',
         'total_amount',
         'payment_status',
         'order_status',

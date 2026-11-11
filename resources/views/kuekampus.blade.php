@@ -317,13 +317,23 @@
             <a href="/">Beranda</a>
             <a href="{{ route('kategori.index') }}">Kategori</a>
             <a href="{{ route('produk.index') }}">Produk</a>
-            <a href="#tentang">Tentang Kami</a>
+            <a href="{{ route('tentang-kami') }}">Tentang Kami</a>
 
             @auth
             @if (auth()->user()->role === 'admin')
             <a href="{{ route('admin.dashboard') }}">Dashboard Admin</a>
             @else
             <a href="{{ route('cart.index') }}">Keranjang</a>
+            <a href="{{ route('profile.edit') }}" title="Profil Saya">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="22" height="22" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M5 21a7 7 0 0 1 14 0" />
+                </svg>
+            </a>
             @endif
             @else
             <a href="{{ route('login') }}">Login</a>

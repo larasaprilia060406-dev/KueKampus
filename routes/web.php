@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\MidtransNotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,6 +52,10 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Halaman Tentang Kami
+Route::view('/tentang-kami', 'tentang-kami')
+    ->name('tentang-kami');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -68,7 +74,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Manajemen Kategori
     Route::resource('categories', CategoryController::class);
-
 });
 
 // Shopping Cart
@@ -87,8 +92,20 @@ Route::middleware('auth')->group(function () {
 
     // Checkout
     Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout.index');
-    
+
+    // Pembayaran Midtrans
+    Route::post('/orders/{order}/pay', [PaymentController::class, 'pay'])
+        ->name('orders.pay');
+
+    // Halaman pembayaran pesanan
+    Route::get('/orders/{order}/payment', [PaymentController::class, 'show'])
+        ->name('orders.payment');
+
     // Simpan pesanan
     Route::post('/checkout', [CartController::class, 'storeOrder'])->name('checkout.store');
 });
-require __DIR__.'/auth.php';
+
+// Webhook notifikasi pembayaran Midtrans
+Route::post('/midtrans/notification', [MidtransNotificationController::class, 'handle'])
+    ->name('midtrans.notification');
+require __DIR__ . '/auth.php';
