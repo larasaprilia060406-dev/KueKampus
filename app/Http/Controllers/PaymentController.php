@@ -67,10 +67,7 @@ class PaymentController extends Controller
 
         try {
             // Mengecek status transaksi jika Snap Token sudah tersimpan
-            if (
-                $order->midtrans_snap_token &&
-                $order->midtrans_transaction_id
-            ) {
+            if ($order->midtrans_snap_token) {
                 $status = Transaction::status($order->order_number);
 
                 $transactionStatus = data_get(
@@ -182,15 +179,19 @@ class PaymentController extends Controller
             // Membuat transaksi Midtrans
             $transaction = Snap::createTransaction($params);
 
-            // Menyimpan token dan ID transaksi
+            // Menyimpan Snap Token
             $order->update([
                 'midtrans_snap_token' => $transaction->token,
-                'midtrans_transaction_id' => $transaction->transaction_id,
             ]);
 
             return redirect($transaction->redirect_url);
-
         } catch (\Exception $e) {
+            Log::error('PHP SSL configuration', [
+                'php_ini' => php_ini_loaded_file(),
+                'curl_cainfo' => ini_get('curl.cainfo'),
+                'openssl_cafile' => ini_get('openssl.cafile'),
+            ]);
+            
             Log::error(
                 'Midtrans payment error: ' . $e->getMessage()
             );
