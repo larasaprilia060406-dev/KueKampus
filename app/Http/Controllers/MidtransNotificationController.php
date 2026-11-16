@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MidtransNotificationController extends Controller
@@ -12,7 +13,6 @@ class MidtransNotificationController extends Controller
     public function handle(Request $request)
     {
         try {
-            // Mengambil Server Key Midtrans
             $serverKey = config('services.midtrans.server_key');
 
             if (empty($serverKey)) {
@@ -23,10 +23,8 @@ class MidtransNotificationController extends Controller
                 ], 500);
             }
 
-            // Mengambil data notifikasi
             $notification = $request->all();
 
-            // Memastikan data penting tersedia
             foreach ([
                 'order_id',
                 'status_code',
@@ -42,7 +40,7 @@ class MidtransNotificationController extends Controller
                 }
             }
 
-            // Memverifikasi signature dari Midtrans
+            // Verifikasi signature Midtrans
             $input = $notification['order_id']
                 . $notification['status_code']
                 . $notification['gross_amount']
@@ -63,89 +61,116 @@ class MidtransNotificationController extends Controller
                 ], 403);
             }
 
-            // Mencari pesanan berdasarkan order number
-            $order = Order::where(
-                'order_number',
-                $notification['order_id']
-            )->first();
+            // Memproses notifikasi secara aman dalam transaksi database
+            return DB::transaction(function () use ($notification) {
 
-            if (!$order) {
+                $order = Order::where(
+                    'order_number',
+                    $notification['order_id']
+                )->lockForUpdate()->first();
+
+                if (!$order) {
+                    return response()->json([
+                        'message' => 'Pesanan tidak ditemukan.'
+                    ], 404);
+                }
+
+                // Memastikan nominal pembayaran sesuai
+                $expectedAmount = (int) round(
+                    (float) $order->orderItems()->sum('subtotal')
+                );
+
+                $receivedAmount = (int) round(
+                    (float) $notification['gross_amount']
+                );
+
+                if ($expectedAmount !== $receivedAmount) {
+                    Log::warning('Nominal transaksi Midtrans tidak sesuai.', [
+                        'order_id' => $notification['order_id'],
+                    ]);
+
+                    return response()->json([
+                        'message' => 'Nominal tidak sesuai.'
+                    ], 400);
+                }
+
+                // Menyimpan ID transaksi Midtrans
+                $order->midtrans_transaction_id =
+                    $notification['transaction_id'];
+
+                $transactionStatus = $notification['transaction_status'];
+                $fraudStatus = $notification['fraud_status'] ?? null;
+                $statusCode = (string) $notification['status_code'];
+
+                // Jika pesanan sudah dibayar, jangan ubah statusnya lagi
+                if ($order->payment_status === 'paid') {
+                    return response()->json([
+                        'message' => 'Pesanan sudah dibayar.'
+                    ], 200);
+                }
+
+                // Pembayaran berhasil
+                if (
+                    $statusCode === '200' &&
+                    $transactionStatus === 'settlement' &&
+                    ($fraudStatus === null || $fraudStatus === 'accept')
+                ) {
+                    $order->payment_status = 'paid';
+                    $order->order_status = 'processing';
+                } elseif (
+                    $statusCode === '200' &&
+                    $transactionStatus === 'capture' &&
+                    $fraudStatus === 'accept'
+                ) {
+                    $order->payment_status = 'paid';
+                    $order->order_status = 'processing';
+                }
+
+                // Pembayaran masih menunggu
+                elseif (
+                    $transactionStatus === 'pending' &&
+                    $order->payment_status !== 'failed'
+                ) {
+                    $order->payment_status = 'pending';
+                }
+
+                // Pembayaran gagal, dibatalkan, atau kedaluwarsa
+                elseif (
+                    in_array(
+                        $transactionStatus,
+                        ['deny', 'cancel', 'expire', 'failure']
+                    )
+                ) {
+                    // Kembalikan stok hanya jika belum pernah dikembalikan
+                    if (is_null($order->stock_restored_at)) {
+
+                        $orderItems = $order->orderItems()
+                            ->with('product')
+                            ->get();
+
+                        foreach ($orderItems as $item) {
+                            if ($item->product) {
+                                $item->product->increment(
+                                    'stock',
+                                    $item->quantity
+                                );
+                            }
+                        }
+
+                        // Penanda agar stok tidak dikembalikan berulang kali
+                        $order->stock_restored_at = now();
+                    }
+
+                    $order->payment_status = 'failed';
+                    $order->order_status = 'cancelled';
+                }
+
+                $order->save();
+
                 return response()->json([
-                    'message' => 'Pesanan tidak ditemukan.'
-                ], 404);
-            }
-
-            // Menghitung total item sesuai perhitungan PaymentController
-            $expectedAmount = (int) round(
-                (float) $order->orderItems()->sum('subtotal')
-            );
-
-            $receivedAmount = (int) round(
-                (float) $notification['gross_amount']
-            );
-
-            // Memastikan nominal pembayaran sesuai
-            if ($expectedAmount !== $receivedAmount) {
-                Log::warning('Nominal transaksi Midtrans tidak sesuai.', [
-                    'order_id' => $notification['order_id'],
-                ]);
-
-                return response()->json([
-                    'message' => 'Nominal tidak sesuai.'
-                ], 400);
-            }
-
-            // Mencegah pesanan yang sudah dibayar berubah kembali
-            if ($order->payment_status === 'paid') {
-                return response()->json([
-                    'message' => 'Pesanan sudah dibayar.'
+                    'message' => 'Notifikasi berhasil diproses.'
                 ], 200);
-            }
-
-            $transactionStatus = $notification['transaction_status'];
-            $fraudStatus = $notification['fraud_status'] ?? null;
-            $statusCode = (string) $notification['status_code'];
-
-            // Menyimpan ID transaksi Midtrans
-            $order->midtrans_transaction_id =
-                $notification['transaction_id'];
-
-            // Memperbarui status pembayaran
-            if (
-                $statusCode === '200' &&
-                $transactionStatus === 'settlement' &&
-                ($fraudStatus === null || $fraudStatus === 'accept')
-            ) {
-                $order->payment_status = 'paid';
-                $order->order_status = 'processing';
-
-            } elseif (
-                $statusCode === '200' &&
-                $transactionStatus === 'capture' &&
-                $fraudStatus === 'accept'
-            ) {
-                $order->payment_status = 'paid';
-                $order->order_status = 'processing';
-
-            } elseif ($transactionStatus === 'pending') {
-                $order->payment_status = 'pending';
-
-            } elseif (
-                in_array(
-                    $transactionStatus,
-                    ['deny', 'cancel', 'expire', 'failure']
-                )
-            ) {
-                $order->payment_status = 'failed';
-                $order->order_status = 'cancelled';
-            }
-
-            // Menyimpan perubahan pesanan
-            $order->save();
-
-            return response()->json([
-                'message' => 'Notifikasi berhasil diproses.'
-            ], 200);
+            });
 
         } catch (\Exception $e) {
             Log::error(
