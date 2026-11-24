@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\MidtransNotificationController;
+use App\Http\Controllers\Admin\OrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -66,7 +67,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Dashboard Admin
     Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
+        return view('admin.dashboard', [
+            'totalOrders' => \App\Models\Order::count(),
+            'totalProducts' => \App\Models\Product::count(),
+            'totalCategories' => \App\Models\Category::count(),
+            'pendingOrders' => \App\Models\Order::where('order_status', 'pending')->count(),
+        ]);
     })->name('admin.dashboard');
 
     // Manajemen Produk
@@ -74,6 +80,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Manajemen Kategori
     Route::resource('categories', CategoryController::class);
+
+    Route::get('/admin/orders', [OrderController::class, 'index'])
+        ->name('admin.orders.index');
+
+    Route::get('/admin/orders/{order}', [OrderController::class, 'show'])
+        ->name('admin.orders.show');
+
+    Route::patch('/admin/orders/{order}/status', [OrderController::class, 'updateStatus'])
+        ->name('admin.orders.updateStatus');
 });
 
 // Shopping Cart
